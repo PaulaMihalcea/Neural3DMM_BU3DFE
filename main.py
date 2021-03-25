@@ -17,7 +17,7 @@ settings_model = settings_parser.get_settings('Model')
 #get_npy_from_mat.main(args(path='./data/' + settings_dataset['dataset_type'] + '/src/' + settings_dataset['landmarks_mat'], section=settings_dataset['landmarks_mat'].replace('.mat', ''), print=False, save=False, savepath='./../data/BU3DFE/template', filename='landmarks'))  # Uncomment & save_True for first time execution
 
 # Compute weights; they will be available at ./data/dataset_name/loss_weights/loss_weights.npy
-#compute_loss_weights.main(args(lmpath='./data/' + settings_dataset['dataset_type'] + '/template/landmarks.npy', tpath='./data/' + settings_dataset['dataset_type'] + '/template/template.obj', save=False))  # Uncomment & save=True for first time execution
+#compute_loss_weights.main(args(lmpath='./data/' + settings_dataset['dataset_type'] + '/template/landmarks.npy', tpath='./data/' + settings_dataset['dataset_type'] + '/template/template.obj', save=True, savepath=None, filename=None))  # Uncomment & save=True for first time execution
 
 # Split dataset; the splits will be available at ./data/dataset_name/preprocessed/train.npy and ./data/dataset_name/preprocessed/test.npy
 #get_dataset_split.main(args(path='./data/' + settings_dataset['dataset_type'] + '/dataset.npy', save=False, split_type='p_ids', split_args=10, shuffle=True, seed=1000))  # Uncomment & save=True for first time execution
@@ -31,63 +31,6 @@ if settings_system['gpu'] == 'True':
     torch.cuda.get_device_name(device_idx)
 elif settings_system['gpu'] == 'False':
     GPU = False
-
-
-##################################### LOSS
-
-def loss_l1(outputs, targets):
-    L = torch.abs(outputs - targets).mean()
-    return L
-loss_fn = loss_l1
-
-
-def loss_weighted_l1(outputs, targets):
-    #weights = np.load('./data/' + dataset_name + '/loss_weights/loss_weights.npy')  # TODO
-    weights = np.array([[0.1, 0.2, 0.3, 0.1, 0.3], [0.1, 0.2, 0.3, 0.1, 0.3]])
-    #weights = np.array([[1,1,1,1,1], [1,1,1,1,1]])  # Con questo torna come la l1
-    L = torch.clone(targets)
-
-    # L = torch.mul(weights, torch.abs(outputs - targets)).mean  # No, va fatto vertice per vertice, e questo lavora su tutto il batch
-    # Le dimensioni di outputs e targets infatti sono torch.Size([16, 6705, 3]) torch.Size([16, 6705, 3])
-    # Quindi bisogna ciclare su ogni elemento del batch, e su ogni suo vertice
-    # E dunque la L corretta è:
-
-    for i in range(0, outputs.shape[0]):  # Per ogni elemento del batch (ovvero per ogni mesh)
-        diff = torch.abs(outputs[i] - targets[i])  # Calcola la differenza in valore assoluto
-        for j in range(0, diff.shape[0]):  # Moltiplica ogni vertice della mesh per il relativo peso
-            diff[j] = diff[j] * weights[i][j]  # Se tolgo il ciclo mi calcola la stessa cosa della l1, quindi ok
-        L[i] = diff
-
-    L = L.mean()
-
-    return L
-loss_fn = loss_weighted_l1
-
-
-
-
-outputs = torch.from_numpy(np.random.randint(low=0, high=10, size=(2,5,3)).astype(float))
-targets = torch.from_numpy(np.random.randint(low=0, high=10, size=(2,5,3)).astype(float))
-
-print('shapes', outputs.shape, targets.shape)
-print()
-print()
-print_flag = False
-if print_flag:
-    print('outputs:', outputs)
-    print()
-    print()
-    print('targets', targets)
-    print()
-    print()
-
-l1 = loss_l1(outputs, targets)
-wloss = loss_weighted_l1(outputs, targets)
-print('l1 loss', l1, 'wloss', wloss)
-
-
-
-##################################### LOSS
 
 
 ##### MAIN #####
@@ -333,7 +276,22 @@ if args['loss']=='l1':
         L = torch.abs(outputs - targets).mean()
         return L
     loss_fn = loss_l1
-# TODO Add weighted loss
+elif args['loss']=='wloss':
+    def loss_l1_weighted(outputs, targets):
+        weights = np.load('./data/' + settings_dataset['dataset_type'] + '/loss_weights/loss_weights.npy')
+
+        L = torch.empty(targets.shape[0], targets.shape[1], targets.shape[2])
+
+        for i in range(0, outputs.shape[0]):  # For each mesh in the batch
+            diff = torch.abs(outputs[i] - targets[i])  # Compute the absolute value of the difference between the coordinates of each vertex
+            for j in range(0, diff.shape[0]):  # Multiply each difference for the weight of the relative vertex
+                diff[j] = diff[j] * weights[i][j]  # Note: after removing this loop, this function returns the regular L1 loss
+            L[i] = diff
+
+        L = L.mean()  # Normalization
+
+        return L
+    loss_fn = loss_l1_weighted
 
 ######################################################################
 
@@ -389,5 +347,3 @@ if args['mode'] == 'test':
     print('autoencoder: normalized loss', norm_l1_loss)
 
     print('autoencoder: euclidean distance in mm=', l2_loss)
-
-    # TODO Add weighted loss

@@ -46,6 +46,22 @@ def get_landmarks_coordinates(landmarks_path, template):
 
 
 def main(args):
+    # Check arguments
+    if args.save == 'False':
+        args.save = False
+    elif args.save == 'True':
+        args.save = True
+
+    if args.savepath is not None:
+        if args.savepath[len(args.savepath) - 1] != '/':
+            args.savepath += '/'
+    else:
+        dataset_name = get_dataset_name_from_lmpath(args.lmpath)
+        args.savepath = './data/' + dataset_name + '/loss_weights/'
+
+    if args.filename is None:
+        args.filename = 'loss_weights.npy'
+
     # Load necessary data
     template = get_vertices_from_template(args.tpath)
     landmarks, landmarks_indices = get_landmarks_coordinates(args.lmpath, template)
@@ -58,12 +74,18 @@ def main(args):
         for j in range(0, len(landmarks)):
             d[i][j] = np.linalg.norm(template[i] - landmarks[j])
 
+    unique_dist = np.unique(d, axis=1)  # Get unique distances
+
+    print(unique_dist.shape, d.shape)
+
     # Find closest landmark
     min_dist = np.zeros(shape=(len(d)), dtype='float64')
+
     for i in range(0, len(d)):
         m = min(d[i])
-        if m == 0:
-            min_dist[i] = 1e-100  # Vertices which coincide with a landmark are temporarily assigned a very small number instead of 0 (otherwise inversion returns inf)
+        if m == 0:  # If the vertex coincides with a landmark
+            d_sorted = np.sort(d[i])  # Sort all distances in order to get the second smallest distance (the minimum distance that is not zero)
+            min_dist[i] = d_sorted[1] - 0.1  # landmark vertices are assigned a value similar to their closest vertex instead of zero (in order to avoid inf in the following division)
         else:
             min_dist[i] = m
 
@@ -81,14 +103,11 @@ def main(args):
     for i in range(0, len(inv_min_dist)):
         weights[i] = (inv_min_dist[i] - minimum) / diff
 
-    # TODO Verifica che i vertici coincidenti coi landmarks abbiano effettivamente peso 1
-    for i in range(0, 66):
-        if weights[landmarks_indices[i]] != 1:
-            print('Trovato peso non uguale a 1, indice:', i)
-
     if args.save:
         np.save(args.savepath + args.filename, weights)
+        np.save(args.savepath + 'ones', np.ones(weights.shape))
         print('Loss weights have been saved to ' + args.savepath + args.filename + '.')
+        print('An additional weights file of all 1s has been saved to ' + args.savepath + 'ones.npy' + '.')
     else:
         print('Loss weights have not been saved.')
 
@@ -106,20 +125,5 @@ if __name__ == '__main__':
     parser.add_argument('-fn', '--filename', help='Weights file name (default is loss_weights.npy).')
 
     args = parser.parse_args()
-
-    if args.save == 'False':
-        args.save = False
-    elif args.save == 'True':
-        args.save = True
-
-    if args.savepath is not None:
-        if args.savepath[len(args.savepath) - 1] != '/':
-            args.savepath += '/'
-    else:
-        dataset_name = get_dataset_name_from_lmpath(args.lmpath)
-        args.savepath = '../data/' + dataset_name + '/loss_weights/'
-
-    if args.filename is None:
-        args.filename = 'loss_weights.npy'
 
     main(args)
