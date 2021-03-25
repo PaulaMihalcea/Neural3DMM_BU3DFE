@@ -1,4 +1,8 @@
+---
 
+**Note: This is a copy of the original [Neural3DMM project](https://github.com/gbouritsas/Neural3DMM), sligthly modified in order to apply its model to the [BU3DFE dataset](http://www.cs.binghamton.edu/~lijun/Research/3DFE/3DFE_Analysis.html).**
+
+---
 
 ![Neural3DMM architecture](images/architecture_figure1.png "Neural3DMM architecture")
 

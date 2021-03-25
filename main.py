@@ -14,13 +14,13 @@ settings_dataset = settings_parser.get_settings('Dataset')
 settings_model = settings_parser.get_settings('Model')
 
 # Extract landmarks; they will be available at ./data/dataset_name/template/landmarks.npy
-#get_npy_from_mat.main(args(path='./data/' + settings_dataset['dataset_type'] + '/src/' + settings_dataset['landmarks_mat'], section=settings_dataset['landmarks_mat'].replace('.mat', ''), print=False, save=False, savepath='./../data/BU3DFE/template', filename='landmarks'))  # TODO Uncomment & save_True
+#get_npy_from_mat.main(args(path='./data/' + settings_dataset['dataset_type'] + '/src/' + settings_dataset['landmarks_mat'], section=settings_dataset['landmarks_mat'].replace('.mat', ''), print=False, save=False, savepath='./../data/BU3DFE/template', filename='landmarks'))  # Uncomment & save_True for first time execution
 
 # Compute weights; they will be available at ./data/dataset_name/loss_weights/loss_weights.npy
-#compute_loss_weights.main(args(lmpath='./data/' + settings_dataset['dataset_type'] + '/template/landmarks.npy', tpath='./data/' + settings_dataset['dataset_type'] + '/template/template.obj', save=False))  # TODO Uncomment & save=True
+#compute_loss_weights.main(args(lmpath='./data/' + settings_dataset['dataset_type'] + '/template/landmarks.npy', tpath='./data/' + settings_dataset['dataset_type'] + '/template/template.obj', save=False))  # Uncomment & save=True for first time execution
 
 # Split dataset; the splits will be available at ./data/dataset_name/preprocessed/train.npy and ./data/dataset_name/preprocessed/test.npy
-#get_dataset_split.main(args(path='./data/' + settings_dataset['dataset_type'] + '/dataset.npy', save=False, split_type='p_ids', split_args=10, shuffle=True, seed=1000))  # TODO Uncomment & save=True
+#get_dataset_split.main(args(path='./data/' + settings_dataset['dataset_type'] + '/dataset.npy', save=False, split_type='p_ids', split_args=10, shuffle=True, seed=1000))  # Uncomment & save=True for first time execution
 
 
 ##### GPU #####
@@ -124,7 +124,7 @@ name = ''
 args = {}
 
 generative_model = settings_model['generative_model']
-downsample_method = settings_model['downsample_method'] # COMA_downsample, meshlab_downsample
+downsample_method = settings_model['downsample_method'] # COMA_downsample, BU3DFE_downsample (identical to COMA_downsample), meshlab_downsample
 
 # below are the arguments for the DFAUST run
 reference_mesh_file = os.path.join(root_dir, dataset, 'template', 'template.obj')
@@ -212,7 +212,7 @@ if not os.path.exists(os.path.join(args['downsample_directory'],'downsampling_ma
     if shapedata.meshpackage == 'trimesh':
         raise NotImplementedError('Rerun with mpi-mesh as meshpackage')
     print("Generating Transform Matrices ..")
-    if downsample_method == 'COMA_downsample':
+    if downsample_method == 'COMA_downsample' or downsample_method == 'BU3DFE_downsample':
         M,A,D,U,F = mesh_sampling.generate_transform_matrices(shapedata.reference_mesh, args['ds_factors'])
     with open(os.path.join(args['downsample_directory'],'downsampling_matrices.pkl'), 'wb') as fp:
         M_verts_faces = [(M[i].v, M[i].f) for i in range(len(M))]
