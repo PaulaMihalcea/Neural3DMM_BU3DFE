@@ -12,6 +12,7 @@
 
 - A `settings` folder has been created in order to contain any number of settings files and allow for an easier setup of the model.
 
+The following is the original abstract of the project.
 
 ---
 
