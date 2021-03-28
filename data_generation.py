@@ -1,24 +1,21 @@
 from tqdm import tqdm
 import numpy as np
 import os, argparse
+from utilities import settings_parser
 
 
+##### SETTINGS #####
+setup_file = settings_parser.get_setup_file()
 
-parser = argparse.ArgumentParser(description='Arguments for dataset split')
-parser.add_argument('-r','--root_dir', type=str,
-            help='Root data directory location, should be same as in neural3dmm.ipynb')
-parser.add_argument('-d','--dataset', type=str, 
-            help='Dataset name, Default is DFAUST')
-parser.add_argument('-v','--num_valid', type=int, default=100, 
-            help='Number of meshes in validation set, default 100')
+settings_dataset = settings_parser.get_settings('Dataset')
+settings_model = settings_parser.get_settings('Model')
 
-args = parser.parse_args()
+nVal = int(settings_model['nval'])
+root_dir = settings_dataset['dataset_path']
+dataset = settings_dataset['dataset_type']
+name = settings_dataset['dataset_type']
 
 
-nVal = args.num_valid
-root_dir = args.root_dir
-dataset = args.dataset
-name = ''
 
 data = os.path.join(root_dir, dataset, 'preprocessed',name)
 train = np.load(data+'/train.npy')

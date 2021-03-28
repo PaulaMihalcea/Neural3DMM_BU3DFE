@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from argparse import ArgumentParser
 
 
@@ -45,6 +46,23 @@ def get_landmarks_coordinates(landmarks_path, template):
     return coords, landmarks
 
 
+def plot_weighted_mesh(template, weights):
+    # Create figure
+    ax = plt.axes(projection='3d')
+    plt.axis('off')
+
+    # Plot vertices
+    ax.scatter3D(template[:, 0], template[:, 1], template[:, 2], c=weights, cmap='CMRmap')
+
+    # Set view
+    ax.view_init(90, -90)
+
+    # Save image
+    plt.savefig('images/landmarks.png', transparent = True, bbox_inches='tight', pad_inches=0, dpi=1200)
+
+    return
+
+# TODO risistema pesi per torch
 def main(args):
     # Check arguments
     if args.save == 'False':
@@ -61,6 +79,11 @@ def main(args):
 
     if args.filename is None:
         args.filename = 'loss_weights.npy'
+
+    if args.plot is None or args.plot == 'False':
+        args.plot = False
+    elif args.plot == 'True':
+        args.plot = True
 
     # Load necessary data
     template = get_vertices_from_template(args.tpath)
@@ -111,6 +134,9 @@ def main(args):
     else:
         print('Loss weights have not been saved.')
 
+    if args.plot:
+        plot_weighted_mesh(template, weights)
+
     return
 
 
@@ -123,6 +149,7 @@ if __name__ == '__main__':
     parser.add_argument('-sv', '--save', help='Save weights file (default: true).')
     parser.add_argument('-sp', '--savepath', help='Weights file path (default is ../data/dataset_name/loss_weights/).')
     parser.add_argument('-fn', '--filename', help='Weights file name (default is loss_weights.npy).')
+    parser.add_argument('-pl', '--plot', help='Plot template mesh with vertices colored according to their weights.')
 
     args = parser.parse_args()
 
