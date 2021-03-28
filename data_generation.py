@@ -1,7 +1,7 @@
 from tqdm import tqdm
 import numpy as np
 import os, argparse
-from utilities import settings_parser
+from utils import settings_parser
 
 
 ##### SETTINGS #####

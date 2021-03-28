@@ -2,9 +2,9 @@ import torch
 import numpy as np
 from scipy.io import savemat
 from argparse import ArgumentParser, Namespace as args
-from facemesh import FaceData
-from results import save_image_face, save_image_face_heatmap, save_cumulative_distribution
-from utilities import compute_loss_weights, get_npy_from_mat, get_dataset_split, settings_parser
+from utils import compute_loss_weights, get_npy_from_mat, get_dataset_split, settings_parser
+from utils.facemesh import FaceData
+from utils.results import save_image_face, save_image_face_heatmap, save_cumulative_distribution
 
 
 def main(args):
