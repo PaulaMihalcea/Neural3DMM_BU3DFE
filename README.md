@@ -1,5 +1,3 @@
----
-
 **Note: This is a copy of the original [Neural3DMM project](https://github.com/gbouritsas/Neural3DMM), sligthly modified in order to be applied to the [BU3DFE dataset](http://www.cs.binghamton.edu/~lijun/Research/3DFE/3DFE_Analysis.html):**
 
 - In order to run the program for the first time, the following command is sufficient:
@@ -15,7 +13,6 @@
 - A `settings` folder has been created in order to contain any number of settings files and allow for an easier setup of the model.
 
 
----
 ---
 
 

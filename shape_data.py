@@ -17,6 +17,7 @@ import trimesh
 import time
 from tqdm import tqdm
 
+
 class ShapeData(object):
     def __init__(self, nVal, train_file, test_file, reference_mesh_file, normalization = True, meshpackage = 'mpi-mesh', load_flag = True, mean_subtraction_only = False):
         self.nVal = nVal
