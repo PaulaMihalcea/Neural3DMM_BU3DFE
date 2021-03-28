@@ -4,7 +4,6 @@ from scipy.io import savemat
 from argparse import ArgumentParser, Namespace as nargs
 import data_generation
 from utils import compute_loss_weights, get_npy_from_mat, get_dataset_split, settings_parser
-from utils.facemesh import FaceData
 from utils.results import save_image_face, save_image_face_heatmap, save_cumulative_distribution
 
 
@@ -377,6 +376,7 @@ def main(args):
             cnn_vertices = ((cnn_outputs * std) + mean) * 1000
             test_vertices = test_vert  # * 1000  # ((test_vert * std) + mean) * 1000
 
+            from utils.facemesh import FaceData
             facedata = FaceData(nVal=100, train_file=args['data'] + '/train.npy', test_file=args['data'] + '/test.npy', reference_mesh_file=reference_mesh_file, pca_n_comp=8, fitpca=True)
 
         # Save images
