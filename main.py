@@ -17,13 +17,16 @@ def main(args):
     settings_model = settings_parser.get_settings('Model')
 
     # Extract landmarks; they will be available at ./data/dataset_name/template/landmarks.npy
-    #get_npy_from_mat.main(args(path='./data/' + settings_dataset['dataset_type'] + '/src/' + settings_dataset['landmarks_mat'], section=settings_dataset['landmarks_mat'].replace('.mat', ''), print=False, save=True, savepath='./../data/BU3DFE/template', filename='landmarks'))  # Uncomment for first time execution
+    if settings_system['get_landmarks'] == 'True':
+        get_npy_from_mat.main(args(path='./data/' + settings_dataset['dataset_type'] + '/src/' + settings_dataset['landmarks_mat'], section=settings_dataset['landmarks_mat'].replace('.mat', ''), print=False, save=True, savepath='./../data/BU3DFE/template', filename='landmarks'))  # Uncomment for first time execution
 
     # Compute weights; they will be available at ./data/dataset_name/loss_weights/loss_weights.npy
-    #compute_loss_weights.main(args(lmpath='./data/' + settings_dataset['dataset_type'] + '/template/landmarks.npy', tpath='./data/' + settings_dataset['dataset_type'] + '/template/template.obj', save=True, savepath=None, filename=None, plot=True))  # Uncomment for first time execution
+    if settings_system['get_weights'] == 'True':
+        compute_loss_weights.main(args(lmpath='./data/' + settings_dataset['dataset_type'] + '/template/landmarks.npy', tpath='./data/' + settings_dataset['dataset_type'] + '/template/template.obj', save=True, savepath=None, filename=None, plot=True))  # Uncomment for first time execution
 
     # Split dataset; the splits will be available at ./data/dataset_name/preprocessed/train.npy and ./data/dataset_name/preprocessed/test.npy
-    #get_dataset_split.main(args(path='./data/' + settings_dataset['dataset_type'] + '/dataset.npy', save=True, split_type='p_ids', split_args=10, shuffle=True, seed=1000))  # Uncomment for first time execution
+    if settings_system['split_dataset'] == 'True':
+        get_dataset_split.main(args(path='./data/' + settings_dataset['dataset_type'] + '/dataset.npy', save=True, split_type=settings_dataset['split_type'], split_args=float(settings_dataset['split_args']), shuffle=settings_dataset['shuffle_dataset'] == 'True', seed=int(settings_dataset['dataset_seed'] == 'True')))
 
 
     ##### GPU #####
@@ -59,7 +62,7 @@ def main(args):
 
     from sklearn.metrics.pairwise import euclidean_distances
 
-    meshpackage = settings_system['meshpackage']  # mpi-mesh, trimesh
+    meshpackage = settings_model['meshpackage']  # mpi-mesh, trimesh
     root_dir = settings_dataset['dataset_path']  # /path/to/dataset/root_dir
 
     dataset = settings_dataset['dataset_type']  # COMA, DFAUST, BU3DFE
@@ -105,7 +108,7 @@ def main(args):
 
             'mode': settings_model['mode'], 'shuffle': settings_model['shuffle'] == 'True', 'nVal': int(settings_model['nval']), 'normalization': settings_model['normalization'] == 'True'}  # mode: train, shuffle: True, nVal: 100, normalization: True
 
-    args['results_folder'] = os.path.join(args['results_folder'],'latent_'+str(args['nz']))
+    args['results_folder'] = os.path.join(args['results_folder'],'latent_'+str(args['nz'])+'_'+str(args['loss']))
 
     if not os.path.exists(os.path.join(args['results_folder'])):
         os.makedirs(os.path.join(args['results_folder']))
@@ -360,10 +363,23 @@ def main(args):
 
         ######################################################################
 
-        if settings_model['save_images'] == 'True':
+        # Get necessary data for images and/or mat files
+        if settings_system['save_images'] == 'True' or settings_system['save_mat'] == 'True':
+            # Calculate the error of all faces, for all vertices
+            mean = np.load(args['data'] + '/mean.npy')
+            std = np.load(args['data'] + '/std.npy')
+            test_vert = testset  # np.load(args['data']+'/test.npy')
 
+            cnn_out = np.load(args['results_folder']+'/predictions/predictions.npy')
+            cnn_outputs = cnn_out[:, :-1, :]
+            cnn_vertices = ((cnn_outputs * std) + mean) * 1000
+            test_vertices = test_vert  # * 1000  # ((test_vert * std) + mean) * 1000
+
+            facedata = FaceData(nVal=100, train_file=args['data'] + '/train.npy', test_file=args['data'] + '/test.npy', reference_mesh_file=reference_mesh_file, pca_n_comp=8, fitpca=True)
+
+        # Save images
+        if settings_system['save_images'] == 'True':
             # Create additional folders
-
             # Image folder
             path_images = os.path.join(args['results_folder'] + '/images/')
             if not os.path.exists(path_images):
@@ -399,40 +415,22 @@ def main(args):
             if not os.path.exists(path_faces_ref):
                 os.makedirs(path_faces_ref)
 
-            # mat file folder
-            path_mat = path_images + 'mat/'
-            if not os.path.exists(path_mat):
-                os.makedirs(path_mat)
-
             # Reference heatmaps folder  (not really needed)
             # path_heatmap_ref = path_reference + 'heatmap/'
             # if not os.path.exists(path_heatmap_ref):
             #     os.makedirs(path_heatmap_ref)
 
-            # Calculate the error of all faces, for all vertices
-            mean = np.load(args['data'] + '/mean.npy')
-            std = np.load(args['data'] + '/std.npy')
-            test_vert = testset  # np.load(args['data']+'/test.npy')
-
-            cnn_out = np.load(args['results_folder']+'/predictions/predictions.npy')
-            cnn_outputs = cnn_out[:, :-1, :]
-            cnn_vertices = ((cnn_outputs * std) + mean) * 1000
-            test_vertices = test_vert  # * 1000  # ((test_vert * std) + mean) * 1000
-
             errors = np.sqrt(np.sum((cnn_vertices - test_vertices) ** 2, axis=2))
             print('Mean euclidean error: ', np.mean(errors), 'max error:', np.max(errors))
-
-            # Save mat files ({'mydata': mydata})
-            savemat(path_mat + 'test_faces', {'all_faces_test' : test_vertices})
-            savemat(path_mat + 'recon_faces', {'all_faces_recostructed' : cnn_vertices})
-            facedata = FaceData(nVal=100, train_file=args['data'] + '/train.npy', test_file=args['data'] + '/test.npy', reference_mesh_file=reference_mesh_file, pca_n_comp=8, fitpca=True)
 
             # Compute cumulative distribution
             name_distr = 'cumulativ_distr_nz_' + str(args['nz'])
             save_cumulative_distribution(errors, name_distr, path_cumulativ_distrs)
 
+            # Compute necessary data
             num_test = predictions.shape[0]
             ids = range(0, num_test, 1)
+
             for id in ids:
                 # Predictions
                 vec = cnn_vertices[id]  # vec.shape = (5023, 3), type: nd.array
@@ -456,6 +454,17 @@ def main(args):
                 # name_reference_heat = str(id) + '_heatref_nz' + str(str(args['nz']))
                 # save_image_face_heatmap(facedata, vec_test, name_reference_heat, id, name_reference_heat, path_heatmap_ref)
 
+        # Save mat files
+        if settings_system['save_mat'] == 'True':
+            # mat file folder
+            path_mat = os.path.join(args['results_folder'] + '/mat/')
+            if not os.path.exists(path_mat):
+                os.makedirs(path_mat)
+
+            # Save mat files ({'mydata': mydata})
+            savemat(path_mat + 'test_faces', {'all_faces_test' : test_vertices})
+            savemat(path_mat + 'recon_faces', {'all_faces_recostructed' : cnn_vertices})
+
 
 ######################################################################
 
@@ -464,11 +473,14 @@ if __name__ == '__main__':
     parser = ArgumentParser(description='Main script for the Neural3DMM project.')
 
     parser.add_argument('-st', '--settings', help='Choose a settings file (default is the one specified in settings/setup_file).')
+    parser.add_argument('-m', '--mode', help='Choose a mode between \'train\' and \'test\' (default is the one specified in the default settings file).')
 
     args = parser.parse_args()
 
     if args.settings is not None:
         settings_parser.set_setup_file('./settings/' + args.settings + '.cfg')
+    if args.mode is not None:
+        settings_parser.set_settings('System', 'mode', args.mode)
 
     main(args)
     print('Fin.')

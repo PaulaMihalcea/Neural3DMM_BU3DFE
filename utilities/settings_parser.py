@@ -30,6 +30,21 @@ def get_settings(section):
     return settings
 
 
+def set_settings(section, key, value):
+    f = ConfigParser()
+
+    cfg_path = get_setup_file()
+
+    f.read(cfg_path)
+
+    f.set(section, key, value)
+
+    with open(cfg_path, 'w') as cfg_file:
+        f.write(cfg_file)
+
+    return
+
+
 # SETUP FILE SETTER
 def set_setup_file(value):
     f = ConfigParser()
