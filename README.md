@@ -1,8 +1,23 @@
 ---
 
-**Note: This is a copy of the original [Neural3DMM project](https://github.com/gbouritsas/Neural3DMM), sligthly modified in order to apply its model to the [BU3DFE dataset](http://www.cs.binghamton.edu/~lijun/Research/3DFE/3DFE_Analysis.html).**
+**Note: This is a copy of the original [Neural3DMM project](https://github.com/gbouritsas/Neural3DMM), sligthly modified in order to be applied to the [BU3DFE dataset](http://www.cs.binghamton.edu/~lijun/Research/3DFE/3DFE_Analysis.html):**
+
+- In order to run the program for the first time, the following command is sufficient:
+  ```
+  python3 main.py
+  ```
+  Two optional arguments, `--settings` and `--mode`, allow to choose the settings file to use and the mode (`train` or `test`):
+  ```
+   python3 main.py --settings my_fav_settings_file --mode train
+  ```
+- `data_generation.py` does not need to be run anymore if `split_dataset = True` in the chosen settings file.
+
+- A `settings` folder has been created in order to contain any number of settings files and allow for an easier setup of the model.
+
 
 ---
+---
+
 
 ![Neural3DMM architecture](images/architecture_figure1.png "Neural3DMM architecture")
 

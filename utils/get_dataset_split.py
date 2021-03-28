@@ -206,6 +206,10 @@ def main(args):
     print('Done.')
 
     if args.save:
+        import os
+        split_path = dataset_path + 'preprocessed/'
+        if not os.path.exists(split_path):
+            os.makedirs(split_path)
         np.save(dataset_path + 'preprocessed/' + 'train', train)
         np.save(dataset_path + 'preprocessed/' + 'test', test)
         print('Split dataset saved to ' + dataset_path + 'preprocessed/' + 'train.npy' + 'and' + dataset_path + 'preprocessed/' + 'test.npy.')

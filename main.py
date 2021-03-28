@@ -1,7 +1,8 @@
 import torch
 import numpy as np
 from scipy.io import savemat
-from argparse import ArgumentParser, Namespace as args
+from argparse import ArgumentParser, Namespace as nargs
+import data_generation
 from utils import compute_loss_weights, get_npy_from_mat, get_dataset_split, settings_parser
 from utils.facemesh import FaceData
 from utils.results import save_image_face, save_image_face_heatmap, save_cumulative_distribution
@@ -18,15 +19,16 @@ def main(args):
 
     # Extract landmarks; they will be available at ./data/dataset_name/template/landmarks.npy
     if settings_system['get_landmarks'] == 'True':
-        get_npy_from_mat.main(args(path='./data/' + settings_dataset['dataset_type'] + '/src/' + settings_dataset['landmarks_mat'], section=settings_dataset['landmarks_mat'].replace('.mat', ''), print=False, save=True, savepath='./../data/BU3DFE/template', filename='landmarks'))  # Uncomment for first time execution
+        get_npy_from_mat.main(nargs(path='./data/' + settings_dataset['dataset_type'] + '/src/' + settings_dataset['landmarks_mat'], section=settings_dataset['landmarks_mat'].replace('.mat', ''), print=False, save=True, savepath='./data/BU3DFE/template', filename='landmarks'))
 
     # Compute weights; they will be available at ./data/dataset_name/loss_weights/loss_weights.npy
     if settings_system['get_weights'] == 'True':
-        compute_loss_weights.main(args(lmpath='./data/' + settings_dataset['dataset_type'] + '/template/landmarks.npy', tpath='./data/' + settings_dataset['dataset_type'] + '/template/template.obj', save=True, savepath=None, filename=None, plot=True))  # Uncomment for first time execution
+        compute_loss_weights.main(nargs(lmpath='./data/' + settings_dataset['dataset_type'] + '/template/landmarks.npy', tpath='./data/' + settings_dataset['dataset_type'] + '/template/template.obj', save=True, savepath=None, filename=None, plot=True))
 
     # Split dataset; the splits will be available at ./data/dataset_name/preprocessed/train.npy and ./data/dataset_name/preprocessed/test.npy
     if settings_system['split_dataset'] == 'True':
-        get_dataset_split.main(args(path='./data/' + settings_dataset['dataset_type'] + '/dataset.npy', save=True, split_type=settings_dataset['split_type'], split_args=float(settings_dataset['split_args']), shuffle=settings_dataset['shuffle_dataset'] == 'True', seed=int(settings_dataset['dataset_seed'] == 'True')))
+        get_dataset_split.main(nargs(path='./data/' + settings_dataset['dataset_type'] + '/dataset.npy', save=True, split_type=settings_dataset['split_type'], split_args=float(settings_dataset['split_args']), shuffle=settings_dataset['shuffle_dataset'] == 'True', seed=int(settings_dataset['split_seed'])))
+        data_generation.main()
 
 
     ##### GPU #####
@@ -106,7 +108,7 @@ def main(args):
             'scheduler': settings_model['scheduler'] == 'True', 'decay_rate': float(settings_model['decay_rate']), 'decay_steps': int(settings_model['decay_steps']),  # scheduler: True, decay_rate: 0.99, decay_steps: 1
             'resume': False,
 
-            'mode': settings_model['mode'], 'shuffle': settings_model['shuffle'] == 'True', 'nVal': int(settings_model['nval']), 'normalization': settings_model['normalization'] == 'True'}  # mode: train, shuffle: True, nVal: 100, normalization: True
+            'mode': settings_system['mode'], 'shuffle': settings_model['shuffle'] == 'True', 'nVal': int(settings_model['nval']), 'normalization': settings_model['normalization'] == 'True'}  # mode: train, shuffle: True, nVal: 100, normalization: True
 
     args['results_folder'] = os.path.join(args['results_folder'],'latent_'+str(args['nz'])+'_'+str(args['loss']))
 

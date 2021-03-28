@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from argparse import ArgumentParser
 
@@ -98,8 +100,6 @@ def main(args):
             d[i][j] = np.linalg.norm(template[i] - landmarks[j])
 
     unique_dist = np.unique(d, axis=1)  # Get unique distances
-
-    print(unique_dist.shape, d.shape)
 
     # Find closest landmark
     min_dist = np.zeros(shape=(len(d)), dtype='float64')

@@ -31,7 +31,7 @@ def main(args):
 
             if args.save:
                 np.save(args.savepath + npy_filename, mat[args.section])  # Save mat file as npy file
-                print('File saved to' + args.savepath + npy_filename + '.npy')
+                print('Landmarks file saved to ' + args.savepath + npy_filename + '.npy')
         else:
             print('The specified section does not contain a valid NumPy array. Exiting program.')
             sys.exit(-1)
