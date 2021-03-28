@@ -1,6 +1,9 @@
 import torch
 import numpy as np
+from scipy.io import savemat
 from argparse import ArgumentParser, Namespace as args
+from facemesh import FaceData
+from results import save_image_face, save_image_face_heatmap, save_cumulative_distribution
 from utilities import compute_loss_weights, get_npy_from_mat, get_dataset_split, settings_parser
 
 
@@ -66,22 +69,22 @@ def main(args):
 
     args = {}
 
-    generative_model = settings_model['generative_model']
+    generative_model = 'autoencoder'
     downsample_method = settings_model['downsample_method']  # COMA_downsample, BU3DFE_downsample (identical to COMA_downsample), meshlab_downsample
 
     # below are the arguments for the DFAUST run
     reference_mesh_file = os.path.join(root_dir, dataset, 'template', 'template.obj')
     downsample_directory = os.path.join(root_dir, dataset, 'template', downsample_method)
-    ds_factors = list(map(int, settings_model['ds_factors'].split(', ')))  # 4, 4, 4, 4
-    step_sizes = list(map(int, settings_model['step_sizes'].split(', ')))  # 2, 2, 1, 1, 1
+    ds_factors = [4, 4, 4, 4]
+    step_sizes = [2, 2, 1, 1, 1]
     filter_sizes_enc = [[3, 16, 32, 64, 128], [[],[],[],[],[]]]
     filter_sizes_dec = [[128, 64, 32, 32, 16], [[],[],[],[],3]]
-    dilation_flag = settings_model['dilation_flag'] == 'True'
+    dilation_flag = True
     if dilation_flag:
-        dilation = list(map(int, settings_model['dilation'].split(', ')))  # 2, 2, 1, 1, 1
+        dilation=[2, 2, 1, 1, 1]
     else:
         dilation = None
-    reference_points = [list(map(int, settings_model['reference_points'].split(', ')))]  # [[414]]; [[3567,4051,4597]] used for COMA with 3 disconnected components
+    reference_points = [[414]]  # [[414]]; [[3567,4051,4597]] used for COMA with 3 disconnected components
 
     args = {'generative_model': generative_model,
             'name': name, 'data': os.path.join(root_dir, dataset, 'preprocessed',name),
@@ -92,7 +95,7 @@ def main(args):
             'seed': int(settings_model['seed']), 'loss': settings_model['loss'],
             'batch_size': int(settings_model['batch_size']), 'num_epochs': int(settings_model['epochs']), 'eval_frequency': int(settings_model['eval_frequency']), 'num_workers': int(settings_model['num_workers']),
             'filter_sizes_enc': filter_sizes_enc, 'filter_sizes_dec': filter_sizes_dec,
-            'nz': int(settings_model['nz']),
+            'nz': int(settings_model['latent_vector']),
             'ds_factors': ds_factors, 'step_sizes' : step_sizes, 'dilation': dilation,  # seed: 2, loss: l1, batch_size: 16, num_epochs: 300, eval_frequency: 200, num_workers: 4, nz: 16
 
             'lr': float(settings_model['learning_rate']),  # 1e-3
@@ -347,13 +350,112 @@ def main(args):
         checkpoint_dict = torch.load(os.path.join(checkpoint_path,args['checkpoint_file']+'.pth.tar'),map_location=device)
         model.load_state_dict(checkpoint_dict['autoencoder_state_dict'])
 
-        predictions, norm_l1_loss, l2_loss = test_autoencoder_dataloader(device, model, dataloader_test,
-                                                                         shapedata, mm_constant = 1000)
+        predictions, testset, norm_l1_loss, l2_loss = test_autoencoder_dataloader(device, model, dataloader_test,
+                                                                     shapedata, mm_constant = 1000)
         np.save(os.path.join(prediction_path,'predictions'), predictions)
 
         print('autoencoder: normalized loss', norm_l1_loss)
 
         print('autoencoder: euclidean distance in mm=', l2_loss)
+
+        ######################################################################
+
+        if settings_model['save_images'] == 'True':
+
+            # Create additional folders
+
+            # Image folder
+            path_images = os.path.join(args['results_folder'] + '/images/')
+            if not os.path.exists(path_images):
+                os.makedirs(path_images)
+
+            # Cumulative distribution folder
+            path_cumulativ_distrs = path_images + 'cumulativ_distrs/'
+            if not os.path.exists(path_cumulativ_distrs):
+                os.makedirs(path_cumulativ_distrs)
+
+            # Predicted images folder
+            path_predicted = path_images + 'predicted/'
+            if not os.path.exists(path_predicted):
+                os.makedirs(path_predicted)
+
+            # Vanilla predicted faces folder
+            path_faces = path_predicted + 'faces/'
+            if not os.path.exists(path_faces):
+                os.makedirs(path_faces)
+
+            # Heatmaps folder
+            path_heatmap = path_predicted + 'heatmap/'
+            if not os.path.exists(path_heatmap):
+                os.makedirs(path_heatmap)
+
+            # References folder
+            path_reference = path_images + 'reference/'
+            if not os.path.exists(path_reference):
+                os.makedirs(path_reference)
+
+            # Vanilla references folder
+            path_faces_ref = path_reference + 'faces/'
+            if not os.path.exists(path_faces_ref):
+                os.makedirs(path_faces_ref)
+
+            # mat file folder
+            path_mat = path_images + 'mat/'
+            if not os.path.exists(path_mat):
+                os.makedirs(path_mat)
+
+            # Reference heatmaps folder  (not really needed)
+            # path_heatmap_ref = path_reference + 'heatmap/'
+            # if not os.path.exists(path_heatmap_ref):
+            #     os.makedirs(path_heatmap_ref)
+
+            # Calculate the error of all faces, for all vertices
+            mean = np.load(args['data'] + '/mean.npy')
+            std = np.load(args['data'] + '/std.npy')
+            test_vert = testset  # np.load(args['data']+'/test.npy')
+
+            cnn_out = np.load(args['results_folder']+'/predictions/predictions.npy')
+            cnn_outputs = cnn_out[:, :-1, :]
+            cnn_vertices = ((cnn_outputs * std) + mean) * 1000
+            test_vertices = test_vert  # * 1000  # ((test_vert * std) + mean) * 1000
+
+            errors = np.sqrt(np.sum((cnn_vertices - test_vertices) ** 2, axis=2))
+            print('Mean euclidean error: ', np.mean(errors), 'max error:', np.max(errors))
+
+            # Save mat files ({'mydata': mydata})
+            savemat(path_mat + 'test_faces', {'all_faces_test' : test_vertices})
+            savemat(path_mat + 'recon_faces', {'all_faces_recostructed' : cnn_vertices})
+            facedata = FaceData(nVal=100, train_file=args['data'] + '/train.npy', test_file=args['data'] + '/test.npy', reference_mesh_file=reference_mesh_file, pca_n_comp=8, fitpca=True)
+
+            # Compute cumulative distribution
+            name_distr = 'cumulativ_distr_nz_' + str(args['nz'])
+            save_cumulative_distribution(errors, name_distr, path_cumulativ_distrs)
+
+            num_test = predictions.shape[0]
+            ids = range(0, num_test, 1)
+            for id in ids:
+                # Predictions
+                vec = cnn_vertices[id]  # vec.shape = (5023, 3), type: nd.array
+                # vec = vec[:-1]
+
+                # Save predicted image with identity == id
+                name_image = str(id) + '_face_nz' + str(str(args['nz']))
+                save_image_face(facedata, vec, name_image, path_faces)
+
+                # Save heatmap of predicted image with identity == id
+                name_heat = str(id) + '_face_heat_nz' + str(str(args['nz']))
+                save_image_face_heatmap(facedata, vec, errors, id, name_heat, path_heatmap)
+
+                # Save reference test set image (for comparison)
+                vec_test = test_vertices[id]
+                name_reference = str(id) + '_ref_nz' + str(str(args['nz']))
+                save_image_face(facedata, vec_test, name_reference, path_faces_ref)
+
+                # Save heatmap of reference test set image (for comparison); since the error is 0, this step is actually unneeded
+                # vec_test = test_vertices[id]
+                # name_reference_heat = str(id) + '_heatref_nz' + str(str(args['nz']))
+                # save_image_face_heatmap(facedata, vec_test, name_reference_heat, id, name_reference_heat, path_heatmap_ref)
+
 
 ######################################################################
 
@@ -369,3 +471,4 @@ if __name__ == '__main__':
         settings_parser.set_setup_file('./settings/' + args.settings + '.cfg')
 
     main(args)
+    print('Fin.')
