@@ -485,4 +485,4 @@ if __name__ == '__main__':
         settings_parser.set_settings('System', 'mode', args.mode)
 
     main(args)
-    print('Fin.')
+    print('~FIN~')

@@ -64,7 +64,7 @@ def plot_weighted_mesh(template, weights):
 
     return
 
-# TODO risistema pesi per torch
+
 def main(args):
     # Check arguments
     if args.save == 'False':

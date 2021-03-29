@@ -123,7 +123,3 @@ def train_autoencoder_dataloader(dataloader_train, dataloader_val,
                 msh = tx_hat[mesh_ind[0]:1,0:-1,:].detach().cpu().numpy()
                 shapedata.save_meshes(os.path.join(samples_dir,'epoch_{0}'.format(epoch)),
                                                  msh, mesh_ind)
-
-    print('~FIN~')
-
-
