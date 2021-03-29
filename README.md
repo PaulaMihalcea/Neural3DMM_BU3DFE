@@ -60,6 +60,11 @@ For this reason, we have written the following guide for creating a **Conda virt
     pip uninstall protobuf
     pip install -U protobuf
     ```
+   If the program still does not work, or gives out a `RuntimeError: CUDA out of memory. Tried to allocate...` error, try installing version 3.6.0 of Protobuf (ignore `pip`'s warnings about package incompatibility):
+    ```
+    pip uninstall protobuf
+    pip install -U protobuf==3.6.0
+    ```
 
 5. Finally, make sure to obtain the [BU3DFE dataset](http://www.cs.binghamton.edu/~lijun/Research/3DFE/3DFE_Analysis.html) from its authors and reorder its models according to the order specified in `data/BU3DFE/identities.txt`, then save it as `dataset.npy` in `data/BU3DFE/`. `dataset.npy` needs to contain only the models' vertices, as their triangulation (which is the same for all models) can be found in `data/BU3DFE/template/template.obj`.
 
