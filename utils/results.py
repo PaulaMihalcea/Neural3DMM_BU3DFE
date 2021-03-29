@@ -90,7 +90,7 @@ def save_image_face_heatmap(facedata, vec, errors, id, name="face_heat", path=""
 
     # Map errors to RGB colors
     min_error = 0
-    max_error = 8
+    max_error = 6
     for i, er in enumerate(errors[id]):
         c_er = abs(er)
         if c_er > max_error:
