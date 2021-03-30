@@ -76,13 +76,13 @@ def main(args):
     generative_model = 'autoencoder'
     downsample_method = settings_model['downsample_method']  # COMA_downsample, BU3DFE_downsample (identical to COMA_downsample), meshlab_downsample
 
-    # below are the arguments for the DFAUST run
+    # below are the arguments for the COMA run
     reference_mesh_file = os.path.join(root_dir, dataset, 'template', 'template.obj')
     downsample_directory = os.path.join(root_dir, dataset, 'template', downsample_method)
     ds_factors = [4, 4, 4, 4]
-    step_sizes = [2, 2, 1, 1, 1]
-    filter_sizes_enc = [[3, 16, 32, 64, 128], [[],[],[],[],[]]]
-    filter_sizes_dec = [[128, 64, 32, 32, 16], [[],[],[],[],3]]
+    step_sizes = [1, 1, 1, 1, 1]
+    filter_sizes_enc = [[64, 64, 64, 128], [[],[],[],[]]]
+    filter_sizes_dec = [[128, 64, 64, 64], [[],[],[],[]]]
     dilation_flag = True
     if dilation_flag:
         dilation=[2, 2, 1, 1, 1]
